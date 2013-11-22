@@ -23,23 +23,23 @@ A tool to update all Fedora yum repositories to use a single source.
     )
 
     # Proxy arguments
-    parser.add_argument('--proxy', '-p',
-                        help='URL of a proxy to be used by all repos')
-    parser.add_argument('--proxy_username',
+    parser.add_argument(u'--proxy', u'-p',
+                        help=u'URL of a proxy to be used by all repos')
+    parser.add_argument(u'--proxy_username',
                         metavar=u'USERNAME',
-                        help='Username for proxy authentication')
-    parser.add_argument('--proxy_password',
+                        help=u'Username for proxy authentication')
+    parser.add_argument(u'--proxy_password',
                         metavar=u'PASSWORD',
-                        help='Password for proxy authentication')
+                        help=u'Password for proxy authentication')
 
     # Development or rawhide
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument('--devel',
-                      action='store_true',
-                      help='Specify that the current release is in development')
-    mode.add_argument('--rawhide',
-                      action='store_true',
-                      help='Use the rawhide repositories')
+    mode.add_argument(u'--devel',
+                      action=u'store_true',
+                      help=u'Specify that the current release is in development')
+    mode.add_argument(u'--rawhide',
+                      action=u'store_true',
+                      help=u'Use the rawhide repositories')
 
     # Actions
     subparsers = parser.add_subparsers(title=u'actions')
@@ -52,7 +52,7 @@ A tool to update all Fedora yum repositories to use a single source.
         help=u'Include a non-default metalink to be used if the baseurl is '
              u'unavailable')
     parser_baseurl.add_argument(u'--no-metalink',
-        action='store_const', dest='metalink', const=None,
+        action=u'store_const', dest=u'metalink', const=None,
         help=u'Do not include a metalink to be used if the baseurl is '
              u'unavailable')
     parser_baseurl.set_defaults(metalink=DEFAULT_METALINK, handler=baseurl)
