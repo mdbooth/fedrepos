@@ -2,7 +2,7 @@
 
 # Copyright 2013 Red Hat, Inc.
 
-DEFAULT_MIRRORLIST = 'https://mirrors.fedoraproject.org/metalink'
+DEFAULT_METALINK = 'https://mirrors.fedoraproject.org/metalink'
 
 '''A tool to consistently update all fedora yum repositories to use a single
 source'''
@@ -22,6 +22,7 @@ A tool to update all Fedora yum repositories to use a single source.
 '''
     )
 
+    # Proxy arguments
     parser.add_argument('--proxy', '-p',
                         help='URL of a proxy to be used by all repos')
     parser.add_argument('--proxy_username',
@@ -29,6 +30,7 @@ A tool to update all Fedora yum repositories to use a single source.
     parser.add_argument('--proxy_password',
                         help='Password for proxy authentication')
 
+    # Development or rawhide
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--devel',
                       action='store_true',
@@ -37,6 +39,7 @@ A tool to update all Fedora yum repositories to use a single source.
                       action='store_true',
                       help='Use the rawhide repositories')
 
+    # Actions
     subparsers = parser.add_subparsers(title=u'actions')
 
     parser_baseurl = subparsers.add_parser(u'baseurl',
@@ -49,8 +52,13 @@ A tool to update all Fedora yum repositories to use a single source.
     parser_mirrorlist.add_argument(u'url')
     parser_mirrorlist.set_defaults(handler=mirrorlist)
 
+    parser_metalink = subparsers.add_parser(u'metalink',
+                                            help=u'Use a specific metalink')
+    parser_metalink.add_argument(u'url')
+    parser_metalink.set_defaults(handler=metalink)
+
     parser_default = subparsers.add_parser(u'default',
-                                           help=u'Reset repos to the default')
+                                           help=u'Reset repos to the default.')
     parser_default.set_defaults(handler=default)
 
     args = parser.parse_args()
@@ -82,8 +90,12 @@ def mirrorlist(args):
     return update_repos(u'mirrorlist', args.url,
                         marshal_mode(args), marshal_proxy(args))
 
+def metalink(args):
+    return update_repos(u'metalink', args.url,
+                        marshal_mode(args), marshal_proxy(args))
+
 def default(args):
-    return update_repos(u'mirrorlist', DEFAULT_MIRRORLIST,
+    return update_repos(u'metalink', DEFAULT_METALINK,
                         marshal_mode(args), marshal_proxy(args))
 
 def update_repos(method, url, mode, proxy):
@@ -95,7 +107,7 @@ def update_repos(method, url, mode, proxy):
     # Consistency? We've heard of it
     # The first entry is the location of repo relative to a Fedora mirror.
     #   It contains urls for released, development and rawhide
-    # The second entry is the name of the repo to be passed to a mirrorlist
+    # The second entry is the name of the repo to be passed to a metalink
     #   It contains names for released and rawhide
     repos = {
         u'fedora': (
@@ -198,6 +210,7 @@ def update_repos(method, url, mode, proxy):
 
             aug.set(repo + '/baseurl', url + baseurl)
             aug.remove(repo + '/mirrorlist')
+            aug.remove(repo + '/metalink')
         else:
             names = repos[name][1]
             if mode is None or len(names) == 1 or mode == DEVEL:
@@ -205,10 +218,15 @@ def update_repos(method, url, mode, proxy):
             else:
                 name = names[1]
 
-            mirrorlist = url + '?repo={name}&arch=$basearch'.format(name=name)
+            query = '?repo={name}&arch=$basearch'.format(name=name)
 
             aug.remove(repo + '/baseurl')
-            aug.set(repo + '/mirrorlist', mirrorlist)
+            if method == u'mirrorlist':
+                aug.set(repo + '/mirrorlink', url + query)
+                aug.remove(repo + '/metalink')
+            else:
+                aug.remove(repo + '/mirrorlist')
+                aug.set(repo + '/metalink', url + query)
 
     aug.save()
 
