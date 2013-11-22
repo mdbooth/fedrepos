@@ -2,10 +2,10 @@
 
 # Copyright 2013 Red Hat, Inc.
 
-DEFAULT_METALINK = 'https://mirrors.fedoraproject.org/metalink'
-
 '''A tool to consistently update all fedora yum repositories to use a single
 source'''
+
+DEFAULT_METALINK = 'https://mirrors.fedoraproject.org/metalink'
 
 DEVEL=u'devel'
 RAWHIDE=u'rawhide'
