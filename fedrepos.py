@@ -42,21 +42,32 @@ A tool to update all Fedora yum repositories to use a single source.
     # Actions
     subparsers = parser.add_subparsers(title=u'actions')
 
+    # Baseurl
     parser_baseurl = subparsers.add_parser(u'baseurl',
                                            help=u'Use a specific baseurl')
     parser_baseurl.add_argument(u'url')
-    parser_baseurl.set_defaults(handler=baseurl)
+    parser_baseurl.add_argument(u'--metalink',
+        help=u'Include a non-default metalink to be used if the baseurl is '
+             u'unavailable')
+    parser_baseurl.add_argument(u'--no-metalink',
+        action='store_const', dest='metalink', const=None,
+        help=u'Do not include a metalink to be used if the baseurl is '
+             u'unavailable')
+    parser_baseurl.set_defaults(metalink=DEFAULT_METALINK, handler=baseurl)
 
+    # Mirrorlink
     parser_mirrorlist = subparsers.add_parser(u'mirrorlist',
                                               help=u'Use a specific mirrorlist')
     parser_mirrorlist.add_argument(u'url')
     parser_mirrorlist.set_defaults(handler=mirrorlist)
 
+    # Metalink
     parser_metalink = subparsers.add_parser(u'metalink',
                                             help=u'Use a specific metalink')
     parser_metalink.add_argument(u'url')
     parser_metalink.set_defaults(handler=metalink)
 
+    # Default
     parser_default = subparsers.add_parser(u'default',
                                            help=u'Reset repos to the default.')
     parser_default.set_defaults(handler=default)
@@ -83,22 +94,22 @@ def marshal_mode(args):
 
 # Argument handlers
 def baseurl(args):
-    return update_repos(u'baseurl', args.url,
+    return update_repos(args.url, None, args.metalink,
                         marshal_mode(args), marshal_proxy(args))
 
 def mirrorlist(args):
-    return update_repos(u'mirrorlist', args.url,
+    return update_repos(None, args.url, None,
                         marshal_mode(args), marshal_proxy(args))
 
 def metalink(args):
-    return update_repos(u'metalink', args.url,
+    return update_repos(None, None, args.url,
                         marshal_mode(args), marshal_proxy(args))
 
 def default(args):
-    return update_repos(u'metalink', DEFAULT_METALINK,
+    return update_repos(None, None, DEFAULT_METALINK,
                         marshal_mode(args), marshal_proxy(args))
 
-def update_repos(method, url, mode, proxy):
+def update_repos(baseurl, mirrorlist, metalink, mode, proxy):
     from itertools import imap, product
 
     import augeas
@@ -171,8 +182,8 @@ def update_repos(method, url, mode, proxy):
 
     aug = augeas.Augeas()
 
-    if method == u'baseurl' and not url.endswith('/'):
-        url = url + '/'
+    if baseurl is not None and not baseurl.endswith('/'):
+        baseurl = baseurl + '/'
 
     for repo in aug.match('/files/etc/yum.repos.d/*/*'):
         def reponame(x):
@@ -199,34 +210,35 @@ def update_repos(method, url, mode, proxy):
             else:
                 aug.remove(repo + '/proxy_password')
 
-        if method == u'baseurl':
+        if baseurl is not None:
             urls = repos[name][0]
             if mode is None or len(urls) == 1:
-                baseurl = urls[0]
+                path = urls[0]
             elif mode == DEVEL:
-                baseurl = urls[1]
+                path = urls[1]
             else:
-                baseurl = urls[2]
+                path = urls[2]
 
-            aug.set(repo + '/baseurl', url + baseurl)
-            aug.remove(repo + '/mirrorlist')
-            aug.remove(repo + '/metalink')
+            aug.set(repo + '/baseurl', baseurl + path)
         else:
-            names = repos[name][1]
-            if mode is None or len(names) == 1 or mode == DEVEL:
-                name = names[0]
-            else:
-                name = names[1]
-
-            query = '?repo={name}&arch=$basearch'.format(name=name)
-
             aug.remove(repo + '/baseurl')
-            if method == u'mirrorlist':
-                aug.set(repo + '/mirrorlink', url + query)
-                aug.remove(repo + '/metalink')
-            else:
-                aug.remove(repo + '/mirrorlist')
-                aug.set(repo + '/metalink', url + query)
+
+        names = repos[name][1]
+        if mode is None or len(names) == 1 or mode == DEVEL:
+            name = names[0]
+        else:
+            name = names[1]
+        query = '?repo={name}&arch=$basearch'.format(name=name)
+
+        if mirrorlist is not None:
+            aug.set(repo + '/mirrorlist', mirrorlist + query)
+        else:
+            aug.remove(repo + '/mirrorlist')
+
+        if metalink is not None:
+            aug.set(repo + '/metalink', metalink + query)
+        else:
+            aug.remove(repo + '/metalink')
 
     aug.save()
 
