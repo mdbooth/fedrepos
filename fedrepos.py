@@ -2,7 +2,7 @@
 
 # Copyright 2013 Red Hat, Inc.
 
-'''A tool to consistently update all fedora yum repositories to use a single
+'''A tool to update all fedora yum repositories on a host to use a single
 source'''
 
 DEFAULT_METALINK = 'https://mirrors.fedoraproject.org/metalink'
