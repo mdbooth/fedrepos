@@ -26,8 +26,10 @@ A tool to update all Fedora yum repositories to use a single source.
     parser.add_argument('--proxy', '-p',
                         help='URL of a proxy to be used by all repos')
     parser.add_argument('--proxy_username',
+                        metavar=u'USERNAME',
                         help='Username for proxy authentication')
     parser.add_argument('--proxy_password',
+                        metavar=u'PASSWORD',
                         help='Password for proxy authentication')
 
     # Development or rawhide
