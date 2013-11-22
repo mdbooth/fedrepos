@@ -18,6 +18,13 @@ def main():
 A tool to update all Fedora yum repositories to use a single source.
 '''
     )
+    parser.add_argument('--proxy', '-p',
+                        help='URL of a proxy to be used by all repos')
+    parser.add_argument('--proxy_username',
+                        help='Username for proxy authentication')
+    parser.add_argument('--proxy_password',
+                        help='Password for proxy authentication')
+
     subparsers = parser.add_subparsers(title=u'actions')
 
     parser_baseurl = subparsers.add_parser(u'baseurl',
@@ -37,17 +44,27 @@ A tool to update all Fedora yum repositories to use a single source.
     args = parser.parse_args()
     sys.exit(args.handler(args))
 
+def marshal_proxy(args):
+    if args.proxy is None:
+        return None
+
+    return {
+        u'url': args.proxy,
+        u'username': args.proxy_username,
+        u'password': args.proxy_password
+    }
+
 # Argument handlers
 def baseurl(args):
-    return update_repos(u'baseurl', args.url)
+    return update_repos(u'baseurl', args.url, marshal_proxy(args))
 
 def mirrorlist(args):
-    return update_repos(u'mirrorlist', args.url)
+    return update_repos(u'mirrorlist', args.url, marshal_proxy(args))
 
 def default(args):
-    return update_repos(u'mirrorlist', DEFAULT_MIRRORLIST)
+    return update_repos(u'mirrorlist', DEFAULT_MIRRORLIST, marshal_proxy(args))
 
-def update_repos(method, url):
+def update_repos(method, url, proxy):
     from itertools import imap, product
 
     import augeas
@@ -105,9 +122,25 @@ def update_repos(method, url):
             m = re.search('\/([^/]+)$', x)
             return m.group(1)
 
+        # Only touch Fedora repos
         name = reponame(repo)
         if name not in repos:
             continue
+
+        if proxy is None:
+            aug.remove(repo + '/proxy')
+            aug.remove(repo + '/proxy_username')
+            aug.remove(repo + '/proxy_password')
+        else:
+            aug.set(repo + '/proxy', proxy[u'url'])
+            if proxy[u'username'] is not None:
+                aug.set(repo + '/proxy_username', proxy[u'username'])
+            else:
+                aug.remove(repo + '/proxy_username')
+            if proxy[u'password'] is not None:
+                aug.set(repo + '/proxy_password', proxy[u'password'])
+            else:
+                aug.remove(repo + '/proxy_password')
 
         if method == u'baseurl':
             aug.set(repo + '/baseurl', url + repos[name][0])
