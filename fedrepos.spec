@@ -5,7 +5,7 @@ Summary:        Update fedora yum repositories on a host to use a single source
 
 License:        GPLv3
 URL:            https://github.com/mdbooth/fedrepos
-Source0:        fedrepos-%{version}.tar.xz
+Source0:        fedrepos-%{version}.tar.gz
 
 BuildRequires:  /usr/bin/a2x
 
