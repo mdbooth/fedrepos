@@ -1,0 +1,118 @@
+fedrepos(1)
+===========
+
+NAME
+----
+fedrepos - Update all fedora yum repositories on a host to use a single source
+
+SYNOPSIS
+--------
+fedrepos [--proxy PROXY]
+         [--proxy_username USERNAME]
+         [--proxy_password PASSWORD]
+         [--devel | --rawhide] <source ...>
+
+fedrepos [options] baseurl [--no-metalink | --metalink <metalink>] <url>
+
+fedrepos [options] mirrorlist <url>
+
+fedrepos [options] metalink <url>
+
+fedrepos [options] default
+
+fedrepos -h
+
+DESCRIPTION
+-----------
+fedrepos is a tool to update the configuration of Fedora yum repositories on a
+host. Fedora configures 9 yum repositories. fedrepos simplifies the task of
+updating all 9 of them consistently.
+
+SOURCES
+-------
+fedrepos can configure all repose to use the same proxy, as well as configuring
+them all to use the same Fedora mirror (with baseurl), mirrorlist or metalink
+URL.
+
+baseurl::
+Configure baseurl for all Fedora yum repositories to use the same Fedora
+mirror. The URL given must be the top level directory containing the
+'releases', 'updates' and 'development' directories, e.g.: 
++
+http://mirror.bytemark.co.uk/fedora/linux/
++ 
+baseurl will append the correct path for each repository, which will be
+modied if --devel or --rawhide is given.
++
+By default, baseurl will also configure the Fedora default metalink,
+which yum will use automatically if the baseurl is not available. The
+user can specify an alternative metalink url with --metalink, or disable
+this behaviour with --no-metalink.
++
+Any existing mirrorlist will be removed.
+
+mirrorlist::
+Configure mirrorlist for all Fedora yum repositories. The URL given will
+have the correct query appended to it for each repository.
++
+Any existing baseurl or metalink will be removed.
+
+metalink::
+Configure metalink for all Fedora yum repositories. The URL given will
+have the correct query appended to it for each repository.
++
+Any existing baseurl or mirrorlist will be removed.
+
+default::
+Configure the default metalink for all Fedora yum repositories.
+
+OPTIONS
+-------
+--proxy PROXY, --proxy_username USERNAME, proxy_password PASSWORD::
+        In addition to configuring the given source, specify a proxy to be used
+        by all Fedora yum repositories. --proxy may be used on its own without
+        --proxy_username and --proxy_password.
+
+--devel::
+        Specify that the current distribution has not yet been released (i.e.
+        it's still in alpha or beta testing). This affects the baseurl.
+
+--rawhide::
+        Specify that the guest should be configured with rawhide repositories.
+        This affects baseurl, mirrorlist and metalink.
+       
+EXAMPLES
+--------
+Configure a host to use a local Fedora mirror, and fall back to the default
+metalink if it is not available:
+
+--------------------------
+  # fedrepos baseurl http://mirrors.example.com/fedora
+--------------------------
+
+Configure a Fedora X host, which is still in beta, to use a local Fedora mirror
+with no metalink fallback:
+--------------------------
+  # fedrepos --devel \
+             baseurl http://mirrors.example.com/fedora --no-metalink
+--------------------------
+
+Configure a host to use a caching proxy. Make effective use of the cache by
+specifying a specific mirror:
+--------------------------
+  # fedrepos --proxy http://proxy.example.com:3128/ \
+              baseurl http://mirrors.example.com/fedora
+--------------------------
+
+Restore the default yum repositories:
+--------------------------
+  # fedrepos default
+--------------------------
+
+SEE ALSO
+--------
+yum-config-manager(1)
+
+AUTHORS
+-------
+Matthew Booth <mbooth@redhat.com>

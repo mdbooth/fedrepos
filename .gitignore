@@ -5,3 +5,6 @@
 # Dist files
 /fedrepos-*.tar.xz
 /fedrepos-*/
+
+# Generated files
+/man/fedrepos.1
