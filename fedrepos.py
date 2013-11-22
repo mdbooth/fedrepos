@@ -7,6 +7,9 @@ DEFAULT_MIRRORLIST = 'https://mirrors.fedoraproject.org/metalink'
 '''A tool to consistently update all fedora yum repositories to use a single
 source'''
 
+DEVEL=u'devel'
+RAWHIDE=u'rawhide'
+
 def main():
     # Parse the command line
     import argparse
@@ -18,12 +21,21 @@ def main():
 A tool to update all Fedora yum repositories to use a single source.
 '''
     )
+
     parser.add_argument('--proxy', '-p',
                         help='URL of a proxy to be used by all repos')
     parser.add_argument('--proxy_username',
                         help='Username for proxy authentication')
     parser.add_argument('--proxy_password',
                         help='Password for proxy authentication')
+
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--devel',
+                      action='store_true',
+                      help='Specify that the current release is in development')
+    mode.add_argument('--rawhide',
+                      action='store_true',
+                      help='Use the rawhide repositories')
 
     subparsers = parser.add_subparsers(title=u'actions')
 
@@ -54,61 +66,94 @@ def marshal_proxy(args):
         u'password': args.proxy_password
     }
 
+def marshal_mode(args):
+    if args.devel:
+        return DEVEL
+    if args.rawhide:
+        return RAWHIDE
+    return None
+
 # Argument handlers
 def baseurl(args):
-    return update_repos(u'baseurl', args.url, marshal_proxy(args))
+    return update_repos(u'baseurl', args.url,
+                        marshal_mode(args), marshal_proxy(args))
 
 def mirrorlist(args):
-    return update_repos(u'mirrorlist', args.url, marshal_proxy(args))
+    return update_repos(u'mirrorlist', args.url,
+                        marshal_mode(args), marshal_proxy(args))
 
 def default(args):
-    return update_repos(u'mirrorlist', DEFAULT_MIRRORLIST, marshal_proxy(args))
+    return update_repos(u'mirrorlist', DEFAULT_MIRRORLIST,
+                        marshal_mode(args), marshal_proxy(args))
 
-def update_repos(method, url, proxy):
+def update_repos(method, url, mode, proxy):
     from itertools import imap, product
 
     import augeas
     import re
 
     # Consistency? We've heard of it
-    # The first entry is the location of repo relative to a Fedora mirror
+    # The first entry is the location of repo relative to a Fedora mirror.
+    #   It contains urls for released, development and rawhide
     # The second entry is the name of the repo to be passed to a mirrorlist
+    #   It contains names for released and rawhide
     repos = {
         u'fedora': (
-            'releases/$releasever/Everything/$basearch/os/',
-            'fedora-$releasever'
+            (
+                'releases/$releasever/Everything/$basearch/os/',
+                'development/$releasever/$basearch/os/',
+                'development/rawhide/$basearch/os/'
+            ),
+            (
+                'fedora-$releasever',
+                'rawhide'
+            )
         ),
         u'fedora-debuginfo': (
-            'releases/$releasever/Everything/$basearch/debug/',
-            'fedora-debug-$releasever'
+            (
+                'releases/$releasever/Everything/$basearch/debug/',
+                'development/$releasever/$basearch/debug/',
+                'development/rawhide/$basearch/debug/'
+            ),
+            (
+                'fedora-debug-$releasever',
+                'rawhide-debug'
+            )
         ),
         u'fedora-source': (
-            'releases/$releasever/Everything/source/SRPMS/',
-            'fedora-source-$releasever'
+            (
+                'releases/$releasever/Everything/source/SRPMS/',
+                'development/$releasever/source/SRPMS/',
+                'development/rawhide/source/SRPMS/',
+            ),
+            (
+                'fedora-source-$releasever',
+                'rawhide-source'
+            )
         ),
         u'updates': (
-            'updates/$releasever/$basearch/',
-            'updates-released-f$releasever'
+            ('updates/$releasever/$basearch/',),
+            ('updates-released-f$releasever',)
         ),
         u'updates-debuginfo': (
-            'updates/$releasever/$basearch/debug/',
-            'updates-released-debug-f$releasever'
+            ('updates/$releasever/$basearch/debug/',),
+            ('updates-released-debug-f$releasever',)
         ),
         u'updates-source': (
-            'fedora/updates/$releasever/SRPMS/',
-            'updates-released-source-f$releasever'
+            ('updates/$releasever/SRPMS/',),
+            ('updates-released-source-f$releasever',)
         ),
         u'updates-testing': (
-            'updates/testing/$releasever/$basearch/',
-            'updates-testing-f$releasever'
+            ('updates/testing/$releasever/$basearch/',),
+            ('updates-testing-f$releasever',)
         ),
         u'updates-testing-debuginfo': (
-            'updates/testing/$releasever/$basearch/debug/',
-            'updates-testing-debug-f$releasever'
+            ('updates/testing/$releasever/$basearch/debug/',),
+            ('updates-testing-debug-f$releasever',)
         ),
         u'updates-testing-source': (
-            'updates/testing/$releasever/SRPMS/',
-            'updates-testing-source-f$releasever'
+            ('updates/testing/$releasever/SRPMS/',),
+            ('updates-testing-source-f$releasever',)
         )
     }
 
@@ -143,10 +188,24 @@ def update_repos(method, url, proxy):
                 aug.remove(repo + '/proxy_password')
 
         if method == u'baseurl':
-            aug.set(repo + '/baseurl', url + repos[name][0])
+            urls = repos[name][0]
+            if mode is None or len(urls) == 1:
+                baseurl = urls[0]
+            elif mode == DEVEL:
+                baseurl = urls[1]
+            else:
+                baseurl = urls[2]
+
+            aug.set(repo + '/baseurl', url + baseurl)
             aug.remove(repo + '/mirrorlist')
         else:
-            mirrorlist = url + '?repo={name}&arch=$basearch'.format(name=repos[name][1])
+            names = repos[name][1]
+            if mode is None or len(names) == 1 or mode == DEVEL:
+                name = names[0]
+            else:
+                name = names[1]
+
+            mirrorlist = url + '?repo={name}&arch=$basearch'.format(name=name)
 
             aug.remove(repo + '/baseurl')
             aug.set(repo + '/mirrorlist', mirrorlist)
