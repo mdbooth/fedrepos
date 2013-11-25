@@ -2,9 +2,20 @@
 *~
 .*.swp
 
+# Build files
+Makefile
+Makefile.in
+/aclocal.m4
+/autom4te.cache/
+/config.log
+/config.status
+/configure
+/install-sh
+/missing
+
 # Dist files
-/fedrepos-*.tar.xz
+/fedrepos-*.tar.gz
 /fedrepos-*/
 
 # Generated files
-/man/fedrepos.1
+/fedrepos.1

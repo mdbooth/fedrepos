@@ -1,5 +1,5 @@
 Name:           fedrepos
-Version:        0.1
+Version:        0.2
 Release:        1%{?dist}
 Summary:        Update fedora yum repositories on a host to use a single source
 
@@ -7,7 +7,8 @@ License:        GPLv3
 URL:            https://github.com/mdbooth/fedrepos
 Source0:        fedrepos-%{version}.tar.gz
 
-BuildRequires:  /usr/bin/a2x
+# Only if we patch the man page. Otherwise it's included in the dist
+#BuildRequires:  /usr/bin/a2x
 
 Requires:       python-augeas
 
@@ -23,7 +24,8 @@ be updated accordingly.
 
 
 %build
-a2x --doctype manpage --format manpage man/fedrepos.1.txt
+%configure
+make
 
 # We don't need a debuginfo package
 %define debug_package %{nil}
@@ -31,12 +33,7 @@ a2x --doctype manpage --format manpage man/fedrepos.1.txt
 
 %install
 rm -rf $RPM_BUILD_ROOT
-
-mkdir -p $RPM_BUILD_ROOT/%{_bindir}
-cp fedrepos.py $RPM_BUILD_ROOT/%{_bindir}/fedrepos
-
-mkdir -p $RPM_BUILD_ROOT/%{_mandir}/man1
-cp man/fedrepos.1 $RPM_BUILD_ROOT/%{_mandir}/man1/
+%makeinstall
 
  
 %files
@@ -46,5 +43,8 @@ cp man/fedrepos.1 $RPM_BUILD_ROOT/%{_mandir}/man1/
 
 
 %changelog
-* Fri Nov 22 2013 Matthew Booth <mbooth@redhat.com> = 0.1-1
+* Mon Nov 25 2013 Matthew Booth <mbooth@redhat.com> - 0.2-1
+- Updated build and installation process
+
+* Fri Nov 22 2013 Matthew Booth <mbooth@redhat.com> - 0.1-1
 - Initial build
