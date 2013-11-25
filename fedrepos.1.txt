@@ -3,7 +3,7 @@ fedrepos(1)
 
 NAME
 ----
-fedrepos - Update all fedora yum repositories on a host to use a single source
+fedrepos - Update all fedora yum repositories to use a single source
 
 SYNOPSIS
 --------
