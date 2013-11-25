@@ -3,14 +3,19 @@ Version:        0.2
 Release:        1%{?dist}
 Summary:        Update fedora yum repositories on a host to use a single source
 
-License:        GPLv3
+License:        GPLv3+
 URL:            https://github.com/mdbooth/fedrepos
 Source0:        https://github.com/mdbooth/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.gz
+
+BuildArch:      noarch
 
 # Only if we patch the man page. Otherwise it's included in the dist
 #BuildRequires:  /usr/bin/a2x
 
 Requires:       python-augeas
+
+# We don't need a debuginfo package
+%global debug_package %{nil}
 
 
 %description
@@ -20,15 +25,12 @@ be updated accordingly.
 
 
 %prep
-%setup
+%setup -q
 
 
 %build
 %configure
 make
-
-# We don't need a debuginfo package
-%define debug_package %{nil}
 
 
 %install
